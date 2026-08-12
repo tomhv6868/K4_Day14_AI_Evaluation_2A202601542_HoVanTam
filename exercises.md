@@ -28,13 +28,13 @@ Theo bài giảng:
 Với từng metric, xác định khi nào score thấp có thể chấp nhận và khi nào là
 critical.
 
-| Metric | Acceptable Low Score Scenario | Critical Low Score Scenario | Action Required |
-|---|---|---|---|
-| Faithfulness | | | |
-| Answer Relevance | | | |
-| Context Recall | | | |
-| Context Precision | | | |
-| Completeness | | | |
+| Tiêu chí | Trường hợp điểm thấp nhưng vẫn chấp nhận được | Trường hợp điểm thấp nghiêm trọng | Cần làm gì |
+| --- | --- | --- | --- |
+| Độ chính xác theo nguồn (Faithfulness) | Có một vài chi tiết chưa được nguồn hỗ trợ rõ ràng, nhưng ý chính vẫn đúng và bám sát thông tin được cung cấp. | Câu trả lời có thông tin sai, tự suy diễn hoặc bịa thêm, làm ảnh hưởng đến kết luận. | Kiểm tra lại cách sử dụng thông tin từ nguồn và hạn chế tạo ra nội dung không có căn cứ. |
+| Mức độ liên quan của câu trả lời (Answer Relevance) | Câu trả lời đúng trọng tâm nhưng có thêm một vài thông tin không cần thiết. | Câu trả lời hiểu sai câu hỏi hoặc không giải quyết đúng vấn đề người dùng đang hỏi. | Cải thiện khả năng hiểu câu hỏi và yêu cầu mô hình trả lời tập trung hơn vào nội dung chính. |
+| Khả năng lấy đủ thông tin cần thiết (Context Recall) | Bỏ sót một vài thông tin phụ, nhưng vẫn lấy được đủ dữ liệu để trả lời đúng. | Bỏ sót thông tin quan trọng, khiến câu trả lời thiếu hoặc sai. | Cải thiện cách tìm kiếm dữ liệu, chia nhỏ nội dung hoặc lấy thêm các đoạn thông tin liên quan. |
+| Độ chính xác của thông tin được lấy (Context Precision) | Có lấy thêm một số thông tin không liên quan, nhưng phần thông tin cần thiết vẫn chiếm phần lớn. | Phần lớn thông tin được lấy về không liên quan hoặc gây nhiễu, làm ảnh hưởng đến câu trả lời. | Cải thiện cách xếp hạng, lọc kết quả và chỉ giữ lại những thông tin thực sự liên quan. |
+| Mức độ đầy đủ (Completeness) | Câu trả lời đã đáp ứng phần lớn yêu cầu nhưng còn thiếu một vài chi tiết nhỏ. | Câu trả lời thiếu những nội dung quan trọng, khiến người dùng không thể sử dụng kết quả một cách đầy đủ. | Kiểm tra lại toàn bộ yêu cầu của người dùng và đảm bảo câu trả lời không bỏ sót các ý quan trọng. |
 
 ### Exercise 1.2 — Bias trong LLM-as-a-Judge
 
@@ -46,31 +46,56 @@ Ba bias thường gặp:
 
 **Câu 1: Thiết kế experiment phát hiện position bias với ít nhất hai conditions.**
 
-> *Câu trả lời:*
+Câu trả lời:
+Chuẩn bị hai câu trả lời A và B cho cùng một câu hỏi, sau đó cho LLM judge đánh giá trong hai điều kiện:
+
+Condition 1: A xuất hiện trước, B xuất hiện sau.
+Condition 2: Đổi vị trí, B xuất hiện trước, A xuất hiện sau.
+
+Nội dung A và B phải được giữ nguyên, chỉ thay đổi thứ tự. Nếu judge thường xuyên chọn câu trả lời đứng trước, dù nội dung không thay đổi, thì có dấu hiệu của position bias.
+
+Có thể chạy experiment trên nhiều câu hỏi và tính tỷ lệ judge thay đổi lựa chọn sau khi đảo vị trí để đánh giá mức độ bias.
 
 **Câu 2: Làm thế nào giảm verbosity bias bằng rubric design?**
 
-> *Câu trả lời:*
+Câu trả lời:
+Rubric cần nói rõ rằng câu trả lời dài hơn không đồng nghĩa với tốt hơn. Judge nên chấm dựa trên các tiêu chí cụ thể như:
+
+Có trả lời đúng câu hỏi không.
+Thông tin có chính xác không.
+Có đầy đủ các ý quan trọng không.
+Có thông tin thừa hoặc lan man không.
+
+Ngoài ra, có thể thêm tiêu chí về độ súc tích, ví dụ: câu trả lời nên cung cấp đủ thông tin cần thiết nhưng không thêm nội dung không liên quan. Như vậy judge sẽ ít ưu tiên một câu trả lời chỉ vì nó dài hơn.
 
 **Câu 3: Tại sao cần calibrate LLM judge với human labels?**
 
-> *Câu trả lời:*
+Câu trả lời:
+Vì đánh giá của LLM judge không phải lúc nào cũng giống đánh giá của con người. Model có thể bị ảnh hưởng bởi position bias, verbosity bias hoặc các bias khác.
+
+Human labels đóng vai trò như một mốc tham chiếu để kiểm tra xem LLM judge đang đánh giá có hợp lý hay không. Bằng cách so sánh kết quả của judge với đánh giá của con người, ta có thể điều chỉnh prompt, rubric hoặc cách tính điểm.
+
+Mục tiêu của calibration là làm cho kết quả của LLM judge gần với tiêu chuẩn đánh giá của con người hơn và ổn định hơn.
 
 ### Exercise 1.3 — Evaluation trong CI/CD
 
 **Câu 1: Chọn threshold để block deployment.**
 
-| Metric | Threshold | Lý do |
-|---|---:|---|
-| Faithfulness | | |
-| Answer Relevance | | |
-| Completeness | | |
+| Metric           | Threshold | Lý do                                                                                                               |
+| ---------------- | --------: | ------------------------------------------------------------------------------------------------------------------- |
+| Faithfulness     |      0.90 | Đây là tiêu chí quan trọng nhất vì câu trả lời không nên chứa thông tin sai hoặc không có trong nguồn.              |
+| Answer Relevance |      0.80 | Câu trả lời cần đúng trọng tâm câu hỏi, nhưng có thể chấp nhận một ít thông tin phụ.                                |
+| Completeness     |      0.80 | Câu trả lời cần bao phủ phần lớn các ý quan trọng, nhưng việc thiếu một vài chi tiết nhỏ vẫn có thể chấp nhận được. |
+
 
 **Câu 2: Khi nào dùng offline evaluation, online evaluation và human review?**
 
-> *Câu trả lời:*
+> * **Offline evaluation:** dùng trước khi đưa hệ thống ra production, để kiểm tra model trên một tập dữ liệu có sẵn. Phù hợp khi muốn so sánh nhiều phiên bản model, prompt hoặc RAG pipeline một cách nhanh và ổn định.
+> * **Online evaluation:** dùng khi hệ thống đã chạy thực tế, để theo dõi chất lượng trên dữ liệu và hành vi thật của người dùng. Phù hợp để phát hiện lỗi hoặc vấn đề mà offline evaluation chưa bao phủ.
+> * **Human review:** dùng khi cần đánh giá những trường hợp khó, mang tính chủ quan hoặc có rủi ro cao, ví dụ câu trả lời nhạy cảm, phức tạp hoặc khi LLM judge không đủ đáng tin cậy.
+>
+> Thực tế nên kết hợp cả ba: **offline để kiểm tra trước khi release, online để giám sát sau khi release, và human review để xác minh các trường hợp quan trọng hoặc khó đánh giá tự động.**
 
----
 
 ## Part 2 — Core Coding (14:45–15:40)
 
